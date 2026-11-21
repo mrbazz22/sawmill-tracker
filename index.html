@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a1a">
+<title>Sawmill Tracker</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #121212;
+    --card: #1e1e1e;
+    --text: #e0e0e0;
+    --muted: #888;
+    --accent: #4caf50;
+    --accent2: #ff9800;
+    --accent3: #2196f3;
+    --danger: #f44336;
+    --border: #333;
+  }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 17px;
+    line-height: 1.5;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px;
+    z-index: 10;
+  }
+  h1 { margin: 0; font-size: 22px; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .stat {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .stat .num { font-size: 24px; font-weight: 700; display: block; }
+  .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .phase {
+    margin: 16px;
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .phase-header {
+    padding: 16px;
+    background: #2a2a2a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .phase-header h2 { margin: 0; font-size: 18px; }
+  .phase-header .count { color: var(--muted); font-size: 14px; }
+  .piece {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .piece:first-of-type { border-top: none; }
+  .piece .check {
+    width: 28px; height: 28px;
+    border: 2px solid var(--muted);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--accent);
+    cursor: pointer;
+  }
+  .piece .check.on { border-color: var(--accent); background: rgba(76,175,80,0.15); }
+  .piece .desc { font-size: 15px; }
+  .piece .size { color: var(--muted); font-size: 13px; }
+  .piece .status-btn {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    min-width: 72px;
+  }
+  .status-uncut { background: #333; color: var(--muted); }
+  .status-cut { background: rgba(33,150,243,0.2); color: var(--accent3); }
+  .status-drying { background: rgba(255,152,0,0.2); color: var(--accent2); }
+  .status-ready { background: rgba(76,175,80,0.2); color: var(--accent); }
+  .add-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 32px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 20;
+  }
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 30;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal.show { display: flex; }
+  .modal-content {
+    background: var(--card);
+    width: 100%;
+    max-width: 500px;
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-content h3 { margin: 0 0 16px 0; font-size: 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+    font-family: inherit;
+  }
+  .field textarea { min-height: 80px; resize: vertical; }
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+  .btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: #333; color: var(--text); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .export-area {
+    margin: 16px;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .export-area textarea {
+    width: 100%;
+    min-height: 120px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: monospace;
+    font-size: 13px;
+    padding: 10px;
+    resize: vertical;
+  }
+  .tab-bar {
+    display: flex;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .tab {
+    flex: 1;
+    padding: 14px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    color: var(--muted);
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .section { display: none; }
+  .section.active { display: block; }
+  .log-entry {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .log-entry .meta { color: var(--muted); font-size: 13px; }
+  .log-entry .del { color: var(--danger); font-size: 20px; cursor: pointer; padding: 4px 8px; }
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🪵 Sawmill Tracker</h1>
+  <div class="stats">
+    <div class="stat"><span class="num" id="st-total">0</span><span class="label">Total</span></div>
+    <div class="stat"><span class="num" id="st-cut">0</span><span class="label">Cut</span></div>
+    <div class="stat"><span class="num" id="st-drying">0</span><span class="label">Drying</span></div>
+    <div class="stat"><span class="num" id="st-ready">0</span><span class="label">Ready</span></div>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <div class="tab active" data-tab="cuts">Cut List</div>
+  <div class="tab" data-tab="logs">My Logs</div>
+  <div class="tab" data-tab="export">Export</div>
+</div>
+
+<div id="cuts" class="section active"></div>
+<div id="logs" class="section"></div>
+<div id="export" class="section">
+  <div class="export-area">
+    <p style="margin-top:0;color:var(--muted);font-size:14px;">Copy this and paste it into Messages, Notes, or wherever you track things.</p>
+    <textarea id="export-text" readonly></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="copy-btn">Copy to Clipboard</button>
+      <button class="btn btn-secondary" id="refresh-export">Refresh</button>
+    </div>
+  </div>
+</div>
+
+<button class="add-btn" id="open-modal">+</button>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Log a New Cut</h3>
+    <div class="field"><label>Date</label><input type="date" id="log-date"></div>
+    <div class="field"><label>Log # (optional)</label><input type="text" id="log-num" placeholder="e.g. Log 7"></div>
+    <div class="field"><label>Size</label><input type="text" id="log-size" placeholder="e.g. 6x6x20"></div>
+    <div class="field"><label>Qty</label><input type="number" id="log-qty" value="1" min="1"></div>
+    <div class="field"><label>For Project</label>
+      <select id="log-project">
+        <option>Back Deck</option>
+        <option>Barn Lean-To</option>
+        <option>Main Barn</option>
+        <option>Greenhouse</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="log-notes" placeholder="e.g. Clean log, no knots"></textarea></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="save-log">Save</button>
+      <button class="btn btn-secondary" id="close-modal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const DEFAULT_PIECES = [
+  // Phase 1: Back Deck
+  { id:'bd1', phase:'Phase 1 — Back Deck', size:'6x6x20', desc:'Rear post (R1)', qty:1, status:'uncut' },
+  { id:'bd2', phase:'Phase 1 — Back Deck', size:'6x6x20', desc:'Rear post (R2)', qty:1, status:'uncut' },
+  { id:'bd3', phase:'Phase 1 — Back Deck', size:'6x6x20', desc:'Rear post (R3)', qty:1, status:'uncut' },
+  { id:'bd4', phase:'Phase 1 — Back Deck', size:'6x6x20', desc:'Rear post (R4)', qty:1, status:'uncut' },
+  { id:'bd5', phase:'Phase 1 — Back Deck', size:'6x6x10', desc:'Post extension (splice)', qty:4, status:'uncut' },
+  { id:'bd6', phase:'Phase 1 — Back Deck', size:'6x6x12', desc:'F4 front post', qty:1, status:'uncut' },
+
+  // Phase 2: Lean-Tos
+  { id:'lt1', phase:'Phase 2 — Lean-Tos', size:'6x6x10', desc:'Tractor lean-to post', qty:4, status:'uncut' },
+  { id:'lt2', phase:'Phase 2 — Lean-Tos', size:'6x6x10', desc:'Sawmill lean-to post', qty:4, status:'uncut' },
+  { id:'lt3', phase:'Phase 2 — Lean-Tos', size:'6x10x24', desc:'Lean-to header (optional)', qty:2, status:'uncut' },
+
+  // Phase 3: Main Barn
+  { id:'bn1', phase:'Phase 3 — Main Barn', size:'6x6x14', desc:'Corner post (high wall)', qty:4, status:'uncut' },
+  { id:'bn2', phase:'Phase 3 — Main Barn', size:'6x6x12', desc:'Corner post (low wall)', qty:4, status:'uncut' },
+  { id:'bn3', phase:'Phase 3 — Main Barn', size:'6x6x14', desc:'Intermediate post (high)', qty:4, status:'uncut' },
+  { id:'bn4', phase:'Phase 3 — Main Barn', size:'6x6x12', desc:'Intermediate post (low)', qty:4, status:'uncut' },
+  { id:'bn5', phase:'Phase 3 — Main Barn', size:'6x6x12', desc:'Gable end post', qty:2, status:'uncut' },
+  { id:'bn6', phase:'Phase 3 — Main Barn', size:'6x10x24', desc:'Loft floor beam', qty:4, status:'uncut' },
+  { id:'bn7', phase:'Phase 3 — Main Barn', size:'6x10x24', desc:'Monitor ridge beam', qty:2, status:'uncut' },
+  { id:'bn8', phase:'Phase 3 — Main Barn', size:'6x10x14', desc:'Clerestory girt', qty:4, status:'uncut' },
+  { id:'bn9', phase:'Phase 3 — Main Barn', size:'2x6x14', desc:'Rafter / loft joist', qty:40, status:'uncut' },
+  { id:'bn10', phase:'Phase 3 — Main Barn', size:'2x6x12', desc:'Wall girt', qty:20, status:'uncut' },
+  { id:'bn11', phase:'Phase 3 — Main Barn', size:'2x6x12', desc:'Brace stock', qty:20, status:'uncut' },
+  { id:'bn12', phase:'Phase 3 — Main Barn', size:'1x6x12', desc:'Wall siding', qty:80, status:'uncut' },
+  { id:'bn13', phase:'Phase 3 — Main Barn', size:'1x8x12', desc:'Loft floor plank', qty:10, status:'uncut' },
+  { id:'bn14', phase:'Phase 3 — Main Barn', size:'1x12x12', desc:'Loft floor plank', qty:6, status:'uncut' },
+
+  // Phase 4: Greenhouse
+  { id:'gh1', phase:'Phase 4 — Greenhouse', size:'4x4x78.5"', desc:'Low corner post', qty:2, status:'uncut' },
+  { id:'gh2', phase:'Phase 4 — Greenhouse', size:'4x4x130.5"', desc:'High corner post', qty:2, status:'uncut' },
+  { id:'gh3', phase:'Phase 4 — Greenhouse', size:'4x4x11.5\'', desc:'Short wall beam', qty:2, status:'uncut' },
+  { id:'gh4', phase:'Phase 4 — Greenhouse', size:'2x14\'', desc:'Bottom / rail (long wall)', qty:8, status:'uncut' },
+  { id:'gh5', phase:'Phase 4 — Greenhouse', size:'2x12\'', desc:'Bottom / rail (short wall)', qty:5, status:'uncut' },
+  { id:'gh6', phase:'Phase 4 — Greenhouse', size:'2x6x16\'', desc:'Roof rafter', qty:11, status:'uncut' },
+];
+
+const STATUS_LABELS = { uncut:'Not Cut', cut:'Cut', drying:'Drying', ready:'Ready' };
+const STATUS_CLASSES = { uncut:'status-uncut', cut:'status-cut', drying:'status-drying', ready:'status-ready' };
+const STATUS_NEXT = { uncut:'cut', cut:'drying', drying:'ready', ready:'uncut' };
+
+// ===== STATE =====
+let pieces = JSON.parse(localStorage.getItem('sawmill_pieces') || JSON.stringify(DEFAULT_PIECES));
+let logs = JSON.parse(localStorage.getItem('sawmill_logs') || '[]');
+
+function savePieces() { localStorage.setItem('sawmill_pieces', JSON.stringify(pieces)); }
+function saveLogs() { localStorage.setItem('sawmill_logs', JSON.stringify(logs)); }
+
+// ===== RENDER =====
+function renderStats() {
+  const total = pieces.reduce((s,p)=>s+(p.qty||1),0);
+  const cut = pieces.filter(p=>p.status==='cut').reduce((s,p)=>s+(p.qty||1),0);
+  const drying = pieces.filter(p=>p.status==='drying').reduce((s,p)=>s+(p.qty||1),0);
+  const ready = pieces.filter(p=>p.status==='ready').reduce((s,p)=>s+(p.qty||1),0);
+  document.getElementById('st-total').textContent = total;
+  document.getElementById('st-cut').textContent = cut;
+  document.getElementById('st-drying').textContent = drying;
+  document.getElementById('st-ready').textContent = ready;
+}
+
+function renderCuts() {
+  const container = document.getElementById('cuts');
+  const grouped = {};
+  pieces.forEach(p => {
+    if (!grouped[p.phase]) grouped[p.phase] = [];
+    grouped[p.phase].push(p);
+  });
+  let html = '';
+  Object.keys(grouped).forEach(phase => {
+    const items = grouped[phase];
+    const done = items.filter(p=>p.status==='ready').reduce((s,p)=>s+(p.qty||1),0);
+    const total = items.reduce((s,p)=>s+(p.qty||1),0);
+    html += `<div class="phase"><div class="phase-header"><h2>${phase}</h2><span class="count">${done}/${total} ready</span></div>`;
+    items.forEach(p => {
+      const check = p.status !== 'uncut' ? '✓' : '';
+      const onClass = p.status !== 'uncut' ? 'on' : '';
+      html += `<div class="piece">
+        <div class="check ${onClass}" data-id="${p.id}">${check}</div>
+        <div class="desc">${p.desc}<br><span class="size">${p.size} &times; ${p.qty}</span></div>
+        <div></div>
+        <button class="status-btn ${STATUS_CLASSES[p.status]}" data-id="${p.id}">${STATUS_LABELS[p.status]}</button>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  container.innerHTML = html;
+
+  // Attach handlers
+  container.querySelectorAll('.check, .status-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      const piece = pieces.find(p => p.id === id);
+      if (piece) {
+        piece.status = STATUS_NEXT[piece.status];
+        savePieces();
+        renderAll();
+      }
+    });
+  });
+}
+
+function renderLogs() {
+  const container = document.getElementById('logs');
+  if (!logs.length) {
+    container.innerHTML = '<div class="empty">No logged cuts yet. Tap + to add one.</div>';
+    return;
+  }
+  const sorted = [...logs].sort((a,b) => (b.ts||0) - (a.ts||0));
+  let html = '';
+  sorted.forEach((log, idx) => {
+    html += `<div class="log-entry">
+      <div>
+        <div><strong>${log.size}</strong> &times; ${log.qty} <span style="color:var(--muted)">(${log.project})</span></div>
+        <div class="meta">${log.date}${log.num ? ' · ' + log.num : ''}${log.notes ? ' · ' + log.notes : ''}</div>
+      </div>
+      <div class="del" data-idx="${idx}">×</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+  container.querySelectorAll('.del').forEach(el => {
+    el.addEventListener('click', () => {
+      const realIdx = sorted[el.dataset.idx];
+      const actualIdx = logs.findIndex(l => l.ts === realIdx.ts);
+      if (actualIdx > -1) {
+        logs.splice(actualIdx, 1);
+        saveLogs();
+        renderAll();
+      }
+    });
+  });
+}
+
+function renderExport() {
+  const lines = [];
+  lines.push('SAWMILL CUT STATUS — ' + new Date().toLocaleDateString());
+  lines.push('');
+  const grouped = {};
+  pieces.forEach(p => { if (!grouped[p.phase]) grouped[p.phase] = []; grouped[p.phase].push(p); });
+  Object.keys(grouped).forEach(phase => {
+    lines.push(phase.toUpperCase());
+    grouped[phase].forEach(p => {
+      const icon = p.status==='ready' ? '✅' : p.status==='drying' ? '🟡' : p.status==='cut' ? '🔵' : '⬜';
+      lines.push(`  ${icon} ${p.desc} — ${p.size} × ${p.qty}`);
+    });
+    lines.push('');
+  });
+  lines.push('CUSTOM LOGS:');
+  if (!logs.length) lines.push('  (none)');
+  else logs.forEach(l => lines.push(`  ${l.date} — ${l.size} × ${l.qty} (${l.project})${l.notes ? ' — ' + l.notes : ''}`));
+  document.getElementById('export-text').value = lines.join('\n');
+}
+
+function renderAll() {
+  renderStats();
+  renderCuts();
+  renderLogs();
+  renderExport();
+}
+
+// ===== TABS =====
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+    renderAll();
+  });
+});
+
+// ===== MODAL =====
+const modal = document.getElementById('modal');
+document.getElementById('open-modal').addEventListener('click', () => {
+  document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+  modal.classList.add('show');
+});
+document.getElementById('close-modal').addEventListener('click', () => modal.classList.remove('show'));
+modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+
+document.getElementById('save-log').addEventListener('click', () => {
+  const log = {
+    date: document.getElementById('log-date').value,
+    num: document.getElementById('log-num').value.trim(),
+    size: document.getElementById('log-size').value.trim(),
+    qty: parseInt(document.getElementById('log-qty').value) || 1,
+    project: document.getElementById('log-project').value,
+    notes: document.getElementById('log-notes').value.trim(),
+    ts: Date.now()
+  };
+  if (!log.size) { alert('Enter a size'); return; }
+  logs.push(log);
+  saveLogs();
+  modal.classList.remove('show');
+  // Clear form
+  document.getElementById('log-size').value = '';
+  document.getElementById('log-qty').value = '1';
+  document.getElementById('log-notes').value = '';
+  renderAll();
+  // Switch to logs tab
+  document.querySelector('[data-tab="logs"]').click();
+});
+
+// ===== EXPORT =====
+document.getElementById('copy-btn').addEventListener('click', () => {
+  const ta = document.getElementById('export-text');
+  ta.select();
+  document.execCommand('copy');
+  const btn = document.getElementById('copy-btn');
+  const old = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = old, 1500);
+});
+document.getElementById('refresh-export').addEventListener('click', renderExport);
+
+// ===== INIT =====
+renderAll();
+</script>
+</body>
+</html>
