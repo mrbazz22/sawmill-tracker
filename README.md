@@ -4,7 +4,7 @@ A single-page mobile web app for tracking sawmill lumber cuts. Save it to your i
 
 ## Features
 
-- **Cut List** — All 4 phases (Back Deck → Lean-Tos → Main Barn → Greenhouse) with per-piece status tracking
+- **Cut List** — All 5 phases (Back Deck → Equipment Lean-To → Main Barn → Greenhouse → Buy List) with per-piece status tracking
 - **My Logs** — Custom log entries for pieces you cut outside the list
 - **Export** — Copy a text summary to paste into Messages, Notes, etc.
 - **LocalStorage** — Data persists on your phone even when offline
@@ -28,8 +28,15 @@ Now it opens full-screen like a real app, no browser chrome.
 - Check marks appear automatically when a piece hits "Ready"
 
 ### View Progress
-- Top stats bar shows total / cut / drying / ready counts across all phases
+- Top stats bar: sawmill total, sawmill ready, buy total, buy ready
 - Each phase shows its own ready/total count
+
+### Rows marked REVIEW
+Two rows carry a `REVIEW:` prefix because they have an unresolved detail:
+- **Deck post splice (6x6x10 x4)** — a splice at 20 ft in a 30 ft post needs a designed connection, or a stepped foundation instead.
+- **Greenhouse roof rafter (2x6x16 x11)** — 2x6 will not span a 14 ft run at 16" o.c.; needs a mid-purlin or a move to 2x8.
+
+Neither blocks milling the rest of the list.
 
 ### Export
 - Go to the **Export** tab
@@ -58,4 +65,4 @@ To restore: Not yet supported automatically — paste your backup text into a no
 - No internet required after first load
 
 ---
-*Created 2026-11-21 for Jeff's sawmill tracking needs.*
+*Updated 2026-11-21 — rebuilt for the locked 24x20 gable barn + 24x10 equipment lean-to (14 ft walls, 6:12). 41 pieces across 5 phases. DATA_VERSION 3 — this reset any previously stored statuses.*
